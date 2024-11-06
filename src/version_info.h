@@ -6,8 +6,8 @@
 typedef struct 
 {
     int version_id;     // Version number
-    time_t timestamp;   // Creation time
-    char *data_pointer; // Path to versioned data
+    time_t timestamp;
+    char *data_pointer;
 } VersionInfo;
 
 void destroy_version_info(VersionInfo *version);

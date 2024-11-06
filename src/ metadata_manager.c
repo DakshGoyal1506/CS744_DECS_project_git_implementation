@@ -1,3 +1,4 @@
+// metadata_manager.c
 #include "metadata_manager.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,16 +8,19 @@
 
 #define METADATA_DIR ".metadata"
 
-static int ensure_directory_exists(const char *path) 
+// Function to ensure a directory exists; creates it if it doesn't
+int ensure_directory_exists(const char *path) 
 {
     struct stat st = {0};
     if (stat(path, &st) == -1) 
     {
-        return mkdir(path, 0755);
+        if (mkdir(path, 0755) != 0)
+            return -1; // Failed to create directory
     }
-    return 0;
+    return 0; // Directory exists or created successfully
 }
 
+// Function to save metadata to a JSON file
 int save_metadata(FileMetadata *metadata) 
 {
     if (!metadata || !metadata->filename) return -1;
@@ -24,23 +28,25 @@ int save_metadata(FileMetadata *metadata)
     char filepath[1024];
     snprintf(filepath, sizeof(filepath), "%s/%s.json", METADATA_DIR, metadata->filename);
 
-    // Ensure the directory exists
-    char dirpath[1024];
-    strcpy(dirpath, filepath);
-    char *last_slash = strrchr(dirpath, '/');
-    if (last_slash) 
-    {
-        *last_slash = '\0'; // Remove the filename
-        ensure_directory_exists(dirpath);
-    }
+    // Ensure the metadata directory exists
+    if (ensure_directory_exists(METADATA_DIR) != 0)
+        return -1;
 
     // Create JSON object
     cJSON *json = cJSON_CreateObject();
+    if (!json)
+        return -1;
+
     cJSON_AddStringToObject(json, "filename", metadata->filename);
     cJSON_AddNumberToObject(json, "version_count", metadata->version_count);
 
     // Add attributes
     cJSON *attr = cJSON_CreateObject();
+    if (!attr) 
+    {
+        cJSON_Delete(json);
+        return -1;
+    }
     cJSON_AddNumberToObject(attr, "st_mode", metadata->attributes.st_mode);
     cJSON_AddNumberToObject(attr, "st_size", metadata->attributes.st_size);
     cJSON_AddNumberToObject(attr, "st_mtime", metadata->attributes.st_mtime);
@@ -48,9 +54,16 @@ int save_metadata(FileMetadata *metadata)
 
     // Add versions
     cJSON *versions = cJSON_CreateArray();
+    if (!versions) 
+    {
+        cJSON_Delete(json);
+        return -1;
+    }
     for (int i = 0; i < metadata->version_count; i++) 
     {
         cJSON *ver = cJSON_CreateObject();
+        if (!ver)
+            continue;
         cJSON_AddNumberToObject(ver, "version_id", metadata->version_list[i].version_id);
         cJSON_AddNumberToObject(ver, "timestamp", metadata->version_list[i].timestamp);
         cJSON_AddStringToObject(ver, "data_pointer", metadata->version_list[i].data_pointer);
@@ -58,7 +71,7 @@ int save_metadata(FileMetadata *metadata)
     }
     cJSON_AddItemToObject(json, "version_list", versions);
 
-    // Write to file
+    // Write JSON to file
     FILE *file = fopen(filepath, "w");
     if (!file) 
     {
@@ -66,6 +79,12 @@ int save_metadata(FileMetadata *metadata)
         return -1;
     }
     char *json_str = cJSON_Print(json);
+    if (!json_str) 
+    {
+        fclose(file);
+        cJSON_Delete(json);
+        return -1;
+    }
     fputs(json_str, file);
     fclose(file);
 
@@ -75,6 +94,7 @@ int save_metadata(FileMetadata *metadata)
     return 0;
 }
 
+// Function to load metadata from a JSON file
 FileMetadata *load_metadata(const char *filename) 
 {
     if (!filename) return NULL;
@@ -90,8 +110,13 @@ FileMetadata *load_metadata(const char *filename)
     long filesize = ftell(file);
     rewind(file);
     char *content = malloc(filesize + 1);
-    fread(content, 1, filesize, file);
-    content[filesize] = '\0';
+    if (!content) 
+    {
+        fclose(file);
+        return NULL;
+    }
+    size_t read_size = fread(content, 1, filesize, file);
+    content[read_size] = '\0';
     fclose(file);
 
     // Parse JSON
@@ -100,25 +125,65 @@ FileMetadata *load_metadata(const char *filename)
     if (!json) return NULL;
 
     FileMetadata *metadata = create_file_metadata(filename);
-    metadata->version_count = cJSON_GetObjectItem(json, "version_count")->valueint;
+    if (!metadata) 
+    {
+        cJSON_Delete(json);
+        return NULL;
+    }
+
+    cJSON *version_count = cJSON_GetObjectItemCaseSensitive(json, "version_count");
+    if (cJSON_IsNumber(version_count)) 
+    {
+        metadata->version_count = version_count->valueint;
+    }
 
     // Load attributes
-    cJSON *attr = cJSON_GetObjectItem(json, "attributes");
-    metadata->attributes.st_mode = cJSON_GetObjectItem(attr, "st_mode")->valueint;
-    metadata->attributes.st_size = cJSON_GetObjectItem(attr, "st_size")->valueint;
-    metadata->attributes.st_mtime = cJSON_GetObjectItem(attr, "st_mtime")->valueint;
+    cJSON *attr = cJSON_GetObjectItemCaseSensitive(json, "attributes");
+    if (cJSON_IsObject(attr)) 
+    {
+        cJSON *st_mode = cJSON_GetObjectItemCaseSensitive(attr, "st_mode");
+        cJSON *st_size = cJSON_GetObjectItemCaseSensitive(attr, "st_size");
+        cJSON *st_mtime = cJSON_GetObjectItemCaseSensitive(attr, "st_mtime");
+
+        if (cJSON_IsNumber(st_mode))
+            metadata->attributes.st_mode = st_mode->valueint;
+        if (cJSON_IsNumber(st_size))
+            metadata->attributes.st_size = st_size->valueint;
+        if (cJSON_IsNumber(st_mtime))
+            metadata->attributes.st_mtime = st_mtime->valueint;
+    }
 
     // Load versions
-    cJSON *versions = cJSON_GetObjectItem(json, "version_list");
-    metadata->version_list = malloc(sizeof(VersionInfo) * metadata->version_count);
-    int i = 0;
-    cJSON *ver;
-    cJSON_ArrayForEach(ver, versions) 
+    cJSON *versions = cJSON_GetObjectItemCaseSensitive(json, "version_list");
+    if (cJSON_IsArray(versions)) 
     {
-        metadata->version_list[i].version_id = cJSON_GetObjectItem(ver, "version_id")->valueint;
-        metadata->version_list[i].timestamp = cJSON_GetObjectItem(ver, "timestamp")->valueint;
-        metadata->version_list[i].data_pointer = strdup(cJSON_GetObjectItem(ver, "data_pointer")->valuestring);
-        i++;
+        metadata->version_list = malloc(sizeof(VersionInfo) * metadata->version_count);
+        if (!metadata->version_list) 
+        {
+            destroy_file_metadata(metadata);
+            cJSON_Delete(json);
+            return NULL;
+        }
+
+        int i = 0;
+        cJSON *ver;
+        cJSON_ArrayForEach(ver, versions) 
+        {
+            if (i >= metadata->version_count)
+                break;
+
+            cJSON *version_id = cJSON_GetObjectItemCaseSensitive(ver, "version_id");
+            cJSON *timestamp = cJSON_GetObjectItemCaseSensitive(ver, "timestamp");
+            cJSON *data_pointer = cJSON_GetObjectItemCaseSensitive(ver, "data_pointer");
+
+            if (cJSON_IsNumber(version_id))
+                metadata->version_list[i].version_id = version_id->valueint;
+            if (cJSON_IsNumber(timestamp))
+                metadata->version_list[i].timestamp = timestamp->valueint;
+            if (cJSON_IsString(data_pointer))
+                metadata->version_list[i].data_pointer = strdup(data_pointer->valuestring);
+            i++;
+        }
     }
 
     cJSON_Delete(json);

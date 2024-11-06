@@ -6,10 +6,10 @@
 
 typedef struct 
 {
-    char *filename;            // File path
-    struct stat attributes;    // Permissions, size, timestamps
-    int version_count;         // Number of versions
-    VersionInfo *version_list; // Dynamic array of VersionInfo
+    char *filename;
+    struct stat attributes;
+    int version_count;
+    VersionInfo *version_list;
 } FileMetadata;
 
 FileMetadata *create_file_metadata(const char *filename);

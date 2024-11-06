@@ -1,5 +1,9 @@
 {
     "files.associations": {
-        "stddef.h": "c"
+        "stddef.h": "c",
+        "stat.h": "c",
+        "metadata_manager.h": "c",
+        "stdio.h": "c",
+        "version_manager.h": "c"
     }
 }

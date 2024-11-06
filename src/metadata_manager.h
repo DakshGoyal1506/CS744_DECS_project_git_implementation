@@ -5,5 +5,6 @@
 
 int save_metadata(FileMetadata *metadata);
 FileMetadata *load_metadata(const char *filename);
+int ensure_directory_exists(const char *path);
 
 #endif
