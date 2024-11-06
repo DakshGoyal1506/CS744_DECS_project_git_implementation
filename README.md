@@ -1,3 +1,28 @@
+versioning_fs/
+├── src/
+│   ├── main.c
+│   ├── file_metadata.h
+│   ├── file_metadata.c
+│   ├── version_info.h
+│   ├── version_info.c
+│   ├── metadata_manager.h
+│   ├── metadata_manager.c
+│   ├── version_manager.h
+│   ├── version_manager.c
+│   ├── Makefile
+│   └── myfs
+├── build/
+├── mnt/
+│   └── test.txt
+├── .metadata/
+│   └── test.txt.json
+├── .versions/
+│   └── test.txt/
+│       ├── version_1
+│       └── version_2
+└── README.md
+
+
 Here's a README for your GitHub repository based on the project plan:
 
 ---
