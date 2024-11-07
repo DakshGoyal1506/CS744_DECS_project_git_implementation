@@ -17,28 +17,6 @@
 #define METADATA_DIR ".metadata"
 #define VERSIONS_DIR ".versions"
 
-// Function declarations
-static int fs_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi);
-static int fs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, 
-                     off_t offset, struct fuse_file_info *fi, enum fuse_readdir_flags flags);
-static int fs_open(const char *path, struct fuse_file_info *fi);
-static int fs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
-static int fs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
-static int fs_create(const char *path, mode_t mode, struct fuse_file_info *fi);
-static int fs_unlink(const char *path);
-
-// Define FUSE operations
-static struct fuse_operations fs_operations = 
-{
-    .getattr    = fs_getattr,
-    .readdir    = fs_readdir,
-    .open       = fs_open,
-    .read       = fs_read,
-    .write      = fs_write,
-    .create     = fs_create,
-    .unlink     = fs_unlink,
-};
-
 // Implementation of fs_getattr
 static int fs_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi)
 {
@@ -262,6 +240,17 @@ static int fs_unlink(const char *path)
 
     return 0;
 }
+
+static struct fuse_operations fs_operations = 
+{
+    .getattr    = fs_getattr,
+    .readdir    = fs_readdir,
+    .open       = fs_open,
+    .read       = fs_read,
+    .write      = fs_write,
+    .create     = fs_create,
+    .unlink     = fs_unlink,
+};
 
 int main(int argc, char *argv[]) 
 {
