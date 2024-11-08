@@ -4,6 +4,11 @@
         "stat.h": "c",
         "metadata_manager.h": "c",
         "stdio.h": "c",
-        "version_manager.h": "c"
+        "version_manager.h": "c",
+        "file_metadata.h": "c",
+        "fuse.h": "c",
+        "stdlib.h": "c",
+        "fcntl.h": "c",
+        "time.h": "c"
     }
 }
