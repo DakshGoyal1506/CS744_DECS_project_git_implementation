@@ -1,10 +1,12 @@
-// metadata_manager.c
-#include "metadata_manager.h"
+// src/metadata_manager.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include "cjson/cJSON.h"
+#include <sys/types.h>
+#include <time.h>
+#include "cJSON.h"
+#include "metadata_manager.h"
 
 #define METADATA_DIR ".metadata"
 
@@ -134,7 +136,7 @@ FileMetadata *load_metadata(const char *filename)
     cJSON *version_count = cJSON_GetObjectItemCaseSensitive(json, "version_count");
     if (cJSON_IsNumber(version_count)) 
     {
-        metadata->version_count = version_count->valueint;
+        metadata->version_count = (int) version_count->valuedouble; // Cast to int
     }
 
     // Load attributes
@@ -143,14 +145,15 @@ FileMetadata *load_metadata(const char *filename)
     {
         cJSON *st_mode = cJSON_GetObjectItemCaseSensitive(attr, "st_mode");
         cJSON *st_size = cJSON_GetObjectItemCaseSensitive(attr, "st_size");
-        cJSON *st_mtime = cJSON_GetObjectItemCaseSensitive(attr, "st_mtime");
+        cJSON *st_mtime_item = cJSON_GetObjectItemCaseSensitive(attr, "st_mtime");
 
         if (cJSON_IsNumber(st_mode))
-            metadata->attributes.st_mode = st_mode->valueint;
+            metadata->attributes.st_mode = (mode_t) st_mode->valuedouble;
         if (cJSON_IsNumber(st_size))
-            metadata->attributes.st_size = st_size->valueint;
-        if (cJSON_IsNumber(st_mtime))
-            metadata->attributes.st_mtime = st_mtime->valueint;
+            metadata->attributes.st_size = (off_t) st_size->valuedouble;
+        if (cJSON_IsNumber(st_mtime_item))
+            metadata->attributes.st_mtime = (time_t) st_mtime_item->valuedouble;
+
     }
 
     // Load versions
@@ -177,9 +180,9 @@ FileMetadata *load_metadata(const char *filename)
             cJSON *data_pointer = cJSON_GetObjectItemCaseSensitive(ver, "data_pointer");
 
             if (cJSON_IsNumber(version_id))
-                metadata->version_list[i].version_id = version_id->valueint;
+                metadata->version_list[i].version_id = (int) version_id->valuedouble; // Cast to int
             if (cJSON_IsNumber(timestamp))
-                metadata->version_list[i].timestamp = timestamp->valueint;
+                metadata->version_list[i].timestamp = (time_t) timestamp->valuedouble;
             if (cJSON_IsString(data_pointer))
                 metadata->version_list[i].data_pointer = strdup(data_pointer->valuestring);
             i++;

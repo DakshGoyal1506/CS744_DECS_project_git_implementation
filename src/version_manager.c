@@ -8,18 +8,22 @@
 
 #define VERSIONS_DIR ".versions"
 
-// Function to save a version of a file
 int save_version(const char *filename, const char *data, size_t size, int version_id) 
 {
     if (!filename || !data) return -1;
 
-    char dirpath[1024];
+    char dirpath[512];
     snprintf(dirpath, sizeof(dirpath), "%s/%s", VERSIONS_DIR, filename);
     if (ensure_directory_exists(dirpath) != 0)
         return -1;
 
     char filepath[1024];
-    snprintf(filepath, sizeof(filepath), "%s/version_%d", dirpath, version_id);
+    int ret = snprintf(filepath, sizeof(filepath), "%s/version_%d", dirpath, version_id);
+    if (ret >= sizeof(filepath)) 
+    {
+        // Handle error: path was truncated
+        return -1;
+    }
 
     FILE *file = fopen(filepath, "wb");
     if (!file) return -1;
@@ -32,6 +36,7 @@ int save_version(const char *filename, const char *data, size_t size, int versio
 
     return 0;
 }
+
 
 // Function to load a specific version of a file
 char *load_version(const char *filename, int version_id, size_t *out_size) 
