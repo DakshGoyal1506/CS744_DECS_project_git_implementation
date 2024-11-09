@@ -1,15 +1,13 @@
 #include "version_manager.h"
-#include "metadata_manager.h" // To use ensure_directory_exists
+#include "metadata_manager.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <errno.h>
 
 #define VERSIONS_DIR ".versions"
 
-int save_version(const char *filename, const char *data, size_t size, int version_id) 
-{
+int save_version(const char *filename, const char *data, size_t size, int version_id) {
     if (!filename || !data) return -1;
 
     char dirpath[512];
@@ -18,12 +16,7 @@ int save_version(const char *filename, const char *data, size_t size, int versio
         return -1;
 
     char filepath[1024];
-    int ret = snprintf(filepath, sizeof(filepath), "%s/version_%d", dirpath, version_id);
-    if (ret >= sizeof(filepath)) 
-    {
-        // Handle error: path was truncated
-        return -1;
-    }
+    snprintf(filepath, sizeof(filepath), "%s/version_%d", dirpath, version_id);
 
     FILE *file = fopen(filepath, "wb");
     if (!file) return -1;
@@ -31,16 +24,10 @@ int save_version(const char *filename, const char *data, size_t size, int versio
     size_t written = fwrite(data, 1, size, file);
     fclose(file);
 
-    if (written != size)
-        return -1;
-
-    return 0;
+    return written == size ? 0 : -1;
 }
 
-
-// Function to load a specific version of a file
-char *load_version(const char *filename, int version_id, size_t *out_size) 
-{
+char *load_version(const char *filename, int version_id, size_t *out_size) {
     if (!filename || !out_size) return NULL;
 
     char filepath[1024];
@@ -54,8 +41,7 @@ char *load_version(const char *filename, int version_id, size_t *out_size)
     rewind(file);
 
     char *data = malloc(filesize);
-    if (!data) 
-    {
+    if (!data) {
         fclose(file);
         return NULL;
     }
@@ -63,8 +49,7 @@ char *load_version(const char *filename, int version_id, size_t *out_size)
     size_t read_size = fread(data, 1, filesize, file);
     fclose(file);
 
-    if (read_size != filesize) 
-    {
+    if (read_size != filesize) {
         free(data);
         return NULL;
     }
