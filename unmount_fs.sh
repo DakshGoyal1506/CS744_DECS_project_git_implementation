@@ -14,5 +14,5 @@ else
 fi
 
 # Unmount the filesystem
-fusermount -u "$MOUNT_POINT"
+fusermount3 -u "$MOUNT_POINT"
 echo "Filesystem unmounted from $MOUNT_POINT"
