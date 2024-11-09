@@ -8,7 +8,7 @@ if [ ! -d "$MOUNT_POINT" ]; then
 fi
 
 # Run the filesystem in the background
-~/Desktop/DECS/Project/builddir/myfs "$MOUNT_POINT" -f &
+./myfs "$MOUNT_POINT" -f &
 FS_PID=$!
 
 echo "Filesystem mounted at $MOUNT_POINT with PID $FS_PID"

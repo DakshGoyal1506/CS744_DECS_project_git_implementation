@@ -247,8 +247,7 @@ static int fs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 }
 
 // Implementation of fs_unlink
-static int fs_unlink(const char *path) 
-{
+static int fs_unlink(const char *path) {
     // Remove metadata file
     char filepath[1024];
     snprintf(filepath, sizeof(filepath), "%s/%s.json", METADATA_DIR, path + 1);
@@ -258,11 +257,23 @@ static int fs_unlink(const char *path)
     // Remove version directory
     char dirpath[1024];
     snprintf(dirpath, sizeof(dirpath), "%s/%s", VERSIONS_DIR, path + 1);
-    if (rmdir(dirpath) != 0 && errno != ENOENT)
-        return -errno;
-
+    // Remove all versions
+    DIR *d = opendir(dirpath);
+    if (d) {
+        struct dirent *dir;
+        while ((dir = readdir(d)) != NULL) {
+            if (dir->d_name[0] == '.')
+                continue;
+            char version_path[1024];
+            snprintf(version_path, sizeof(version_path), "%s/%s", dirpath, dir->d_name);
+            unlink(version_path);
+        }
+        closedir(d);
+        rmdir(dirpath);
+    }
     return 0;
 }
+
 
 static int fs_mkdir(const char *path, mode_t mode) {
     // Create directory in .metadata

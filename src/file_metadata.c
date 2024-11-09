@@ -1,7 +1,8 @@
+// src/file_metadata.c
 #include "file_metadata.h"
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+#include <time.h> // For time()
 
 FileMetadata *create_file_metadata(const char *filename) {
     if (!filename) return NULL;
@@ -16,10 +17,10 @@ FileMetadata *create_file_metadata(const char *filename) {
     }
 
     memset(&metadata->attributes, 0, sizeof(struct stat));
-    metadata->attributes.st_mode = S_IFREG | 0644;
+    metadata->attributes.st_mode = S_IFREG | 0644; // Regular file with rw-r--r-- permissions
     metadata->attributes.st_nlink = 1;
     metadata->attributes.st_size = 0;
-    metadata->attributes.st_mtime = time(NULL);
+    metadata->attributes.st_mtime = time(NULL); // Current time
 
     metadata->version_count = 0;
     metadata->version_list = NULL;
